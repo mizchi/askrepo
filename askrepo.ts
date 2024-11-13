@@ -1,11 +1,18 @@
-//https://gist.github.com/mizchi/24ac021b8d59755599860c785526f955
+// askrepo -i "このコードを要約してください。" -m "gemini-1.5-flash-latest" file1.ts file2.js
+
 import { google } from "npm:@ai-sdk/google@0.0.55";
 import { streamText } from "npm:ai@4.0.0-canary.10";
 import { parseArgs } from "node:util";
 import path from "node:path";
 import { $ } from "jsr:@david/dax@0.42.0";
-// import { globToRegExp } from "jsr:@std/path@^1.0.7/glob-to-regexp";
-// import { parse } from "path/posix";
+import { globToRegExp } from "jsr:@std/path@^1.0.7/glob-to-regexp";
+
+function normalizePath(fpath: string) {
+  if (fpath.startsWith("/")) {
+    return fpath;
+  }
+  return path.join(Deno.cwd(), fpath);
+}
 
 async function getFilesContent(
   basePath: string,
@@ -17,7 +24,7 @@ async function getFilesContent(
 
   const files: string[] = await $`git ls-files ${basePath}`.noThrow().lines();
   for (const fpath of files) {
-    const filepath = path.join(basePath, fpath);
+    const filepath = normalizePath(fpath);
     if (!matcher(filepath)) {
       continue;
     }
@@ -40,20 +47,34 @@ const parsed = parseArgs({
 
 const targetFiles = new Set(
   parsed.positionals.map((fName) => {
-    return path.join(Deno.cwd(), fName);
+    return normalizePath(fName);
   })
 );
-const matcher =
-  parsed.positionals.length > 0
-    ? (fpath: string) => {
-        if (fpath.startsWith("/")) {
-          return targetFiles.has(fpath);
-        }
-        return targetFiles.has(path.join(Deno.cwd(), fpath));
-      }
-    : () => true;
+const filters =
+  parsed.values.filter?.map((f) => {
+    return globToRegExp(normalizePath(f));
+  }) ?? [];
+const matcher = (fpath: string) => {
+  if (filters.length > 0) {
+    console.log("filters", filters);
+    return filters.some((filter) => filter.test(fpath));
+  }
+  if (parsed.positionals.length > 0) {
+    return targetFiles.has(normalizePath(fpath));
+  }
+  return true;
+};
+// const matcher =
+//   parsed.positionals.length > 0
+//     ? (fpath: string) => {
+//         if (fpath.startsWith("/")) {
+//           return targetFiles.has(fpath);
+//         }
+//         return targetFiles.has(path.join(Deno.cwd(), fpath));
+//       }
+//     : () => true;
+
 const contents = await getFilesContent(".", matcher);
-console.log(parsed.positionals);
 
 const _encoder = new TextEncoder();
 const write = (text: string) => {
