@@ -206,7 +206,7 @@ export async function runAskRepo(options: {
   files: Record<string, string>;
   root: string;
   model?: "gemini-1.5-pro-latest" | "gemini-1.5-flash-latest" | string;
-}) {
+}): Promise<void> {
   const write = (text: string) => {
     Deno.stdout.writeSync(new TextEncoder().encode(text));
   };
