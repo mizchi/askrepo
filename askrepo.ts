@@ -226,7 +226,7 @@ export async function* askRepo(opts: {
   files: Record<string, string>;
   model: "gemini-1.5-pro-latest" | "gemini-1.5-flash-latest" | string;
   debug?: boolean;
-}) {
+}): AsyncGenerator<string> {
   const text = template(opts.input, opts.files, opts.root);
   if (opts.debug) {
     console.log(`%c${text}`, "color: gray");
