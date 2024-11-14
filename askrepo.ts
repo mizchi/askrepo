@@ -38,7 +38,7 @@ function isTextFile(file: string) {
 }
 
 const _decoder = new TextDecoder();
-async function getContents(files: Set<string>) {
+export async function getFiles(files: Set<string>) {
   const filesContent: {
     [key: string]: string;
   } = {};
@@ -201,7 +201,26 @@ ${filesCode}
 `.trim();
 };
 
-async function* askRepo(opts: {
+export async function runAskRepo(options: {
+  input: string;
+  files: Record<string, string>;
+  root: string;
+  model?: "gemini-1.5-pro-latest" | "gemini-1.5-flash-latest" | string;
+}) {
+  const write = (text: string) => {
+    Deno.stdout.writeSync(new TextEncoder().encode(text));
+  };
+  for await (const textPart of askRepo({
+    input: options.input,
+    files: options.files,
+    root: options.root,
+    model: options.model ?? "gemini-1.5-flash-latest",
+  })) {
+    write(textPart);
+  }
+}
+
+export async function* askRepo(opts: {
   input: string;
   root: string;
   files: Record<string, string>;
@@ -299,7 +318,7 @@ if (import.meta.main) {
     console.error("No prompt");
     Deno.exit(1);
   }
-  const contents = await getContents(targetFiles);
+  const contents = await getFiles(targetFiles);
   const model =
     parsed.values.model ?? parsed.values.pro
       ? "gemini-1.5-flash-latest"
