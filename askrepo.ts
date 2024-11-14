@@ -38,7 +38,9 @@ function isTextFile(file: string) {
 }
 
 const _decoder = new TextDecoder();
-export async function getFiles(files: Set<string>) {
+export async function getFiles(
+  files: Set<string>
+): Promise<Record<string, string>> {
   const filesContent: {
     [key: string]: string;
   } = {};
