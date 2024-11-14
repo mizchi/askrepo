@@ -23,6 +23,10 @@ function normalizePath(fpath: string) {
   if (fpath.startsWith("/")) {
     return fpath;
   }
+  // for Windows
+  if (fpath.startsWith("C:")) {
+    return fpath;
+  }
   return path.join(Deno.cwd(), fpath);
 }
 
