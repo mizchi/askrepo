@@ -45,6 +45,17 @@ askrepo -p "Summarize the project" # Defaults to using git ls-files
 askrepo -p "Summarize the source code" -i 'src/**/*.ts' -e 'src/**/__tests__/**'
 ```
 
+## Usage: module
+
+```ts
+import { runAskRepo, getFiles } from "jsr:@mizchi/askrepo";
+await runAskRepo({
+  input: "Summarize these files",
+  root: Deno.cwd(),
+  files: await getFiles(new Set(["askrepo.ts"])),
+});
+```
+
 ## Options
 
 ```
