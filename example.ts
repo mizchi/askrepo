@@ -5,5 +5,5 @@ import { runAskRepo, getFileContents } from "./askrepo.ts";
 await runAskRepo({
   input: "ソースコードを要約してください。",
   root: Deno.cwd(),
-  files: await getFileContents(new Set(["askrepo.ts", "mod.ts"])),
+  files: await getFileContents(["askrepo.ts"]),
 });

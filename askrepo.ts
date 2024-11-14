@@ -83,12 +83,13 @@ export async function getGitListFiles(root: string): Promise<string[]> {
 }
 
 export async function getFileContents(
-  files: Set<string>
+  files: Set<string> | string[]
 ): Promise<Record<string, string>> {
   const contents: {
     [key: string]: string;
   } = {};
-  for (const fpath of files) {
+  const fileSet = files instanceof Set ? files : new Set(files);
+  for (const fpath of fileSet) {
     const filepath = normalizePath(fpath);
     const buf = await Deno.readFile(filepath);
     if (buf.byteLength > MAX_FILE_SIZE) {
