@@ -26,14 +26,52 @@ function normalizePath(fpath: string) {
   return path.join(Deno.cwd(), fpath);
 }
 
-function isTextFile(file: string) {
+async function isBinaryFile(fpath: string): Promise<boolean> {
   try {
-    const buffer = Deno.readFileSync(file);
-    const isBinary = buffer.some((byte) => byte > 127);
-    return !isBinary;
-  } catch (err) {
-    console.warn(`Error reading file: ${err}`);
+    // ファイルの先頭8192バイトを読み込む
+    const file = await Deno.open(fpath);
+    const buffer = new Uint8Array(8192);
+    const bytesRead = await file.read(buffer);
+    file.close();
+
+    if (bytesRead === null) {
+      return false;
+    }
+
+    // 実際に読み込んだ部分だけを取得
+    const content = buffer.subarray(0, bytesRead);
+
+    // NULL バイトをチェック
+    if (content.includes(0)) {
+      return true;
+    }
+
+    // 制御文字の数をカウント
+    let controlChars = 0;
+    let printableChars = 0;
+
+    for (const byte of content) {
+      // タブ、改行、復帰は除外
+      if (byte === 9 || byte === 10 || byte === 13) {
+        continue;
+      }
+
+      if (byte < 32 || byte === 127) {
+        controlChars++;
+      } else {
+        printableChars++;
+      }
+
+      // 制御文字の割合が30%を超えたらバイナリとみなす
+      if (printableChars > 0 && controlChars / printableChars > 0.3) {
+        return true;
+      }
+    }
+
     return false;
+  } catch (error) {
+    console.error(`Error reading file ${fpath}:`, error);
+    throw error;
   }
 }
 
@@ -57,9 +95,10 @@ export async function getFileContents(
       console.warn(`File too large: ${filepath}`);
       continue;
     }
-    // TODO: Fixme
-    // NOTE: Skip binary
-    // if (!isTextFile(filepath)) continue;
+    if (await isBinaryFile(filepath)) {
+      console.warn(`Binary file: ${filepath}`);
+      continue;
+    }
     contents[fpath] = _decoder.decode(buf);
   }
   return contents;
@@ -196,15 +235,7 @@ const template = (
       return `\`\`\`${lang}:${filepath}\n${value.trim()}\n\`\`\``;
     })
     .join("\n\n");
-
-  console.log("filesCode", filesCode);
-
   return `${input}
-
-File Format
-\`\`\`<language>:<filename>
-<content>
-\`\`\`
 
 # Files
 
@@ -231,6 +262,17 @@ export async function runAskRepo(options: {
   }
 }
 
+const SYSTEM_PROMPT = `
+You are asked to summarize the source code.
+Answer the question by given language of prompt.
+
+File Format
+
+\`\`\`<language>:<filename>
+<content>
+\`\`\`
+`;
+
 export async function* askRepo(opts: {
   input: string;
   root: string;
@@ -245,6 +287,7 @@ export async function* askRepo(opts: {
 
   const { textStream } = await streamText({
     model: google(opts.model),
+    system: SYSTEM_PROMPT,
     messages: [
       {
         role: "user",
@@ -317,6 +360,8 @@ if (import.meta.main) {
         })
       )
     );
+  } else {
+    console.log("Files", targetFiles.size);
   }
 
   const _encoder = new TextEncoder();
