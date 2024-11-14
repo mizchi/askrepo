@@ -1,9 +1,8 @@
 {
   "name": "@mizchi/askrepo",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "license": "MIT",
   "exports": {
-    ".": "./askrepo.ts",
-    "./mod": "./askrepo.ts"
+    ".": "./askrepo.ts"
   }
 }

@@ -38,6 +38,12 @@ function isTextFile(file: string) {
 }
 
 const _decoder = new TextDecoder();
+
+export async function getGitListFiles(root: string): Promise<string[]> {
+  const files = await $`git ls-files ${root}`.noThrow().lines();
+  return files;
+}
+
 export async function getFiles(
   files: Set<string>
 ): Promise<Record<string, string>> {
@@ -91,7 +97,7 @@ async function getTargetFiles(
   };
 
   if (positionals.length === 0) {
-    const files = await $`git ls-files ${root}`.noThrow().lines();
+    const files = await getGitListFiles(root);
     for (const f of files) {
       addIfMatch(f);
     }
