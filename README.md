@@ -7,7 +7,7 @@ $ askrepo
 $ askrepo -i "Describe about main.ts"
 
 # Filters
-$ askrepo -f dir -f '*.md'
+$ askrepo -i '*.md' -i '!README.md'
 $ askrepo **/*.ts
 ```
 
