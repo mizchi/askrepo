@@ -44,10 +44,10 @@ export async function getGitListFiles(root: string): Promise<string[]> {
   return files;
 }
 
-export async function getFiles(
+export async function getFileContents(
   files: Set<string>
 ): Promise<Record<string, string>> {
-  const filesContent: {
+  const contents: {
     [key: string]: string;
   } = {};
   for (const fpath of files) {
@@ -57,11 +57,12 @@ export async function getFiles(
       console.warn(`File too large: ${filepath}`);
       continue;
     }
+    // TODO: Fixme
     // NOTE: Skip binary
-    if (!isTextFile(filepath)) continue;
-    filesContent[fpath] = _decoder.decode(buf);
+    // if (!isTextFile(filepath)) continue;
+    contents[fpath] = _decoder.decode(buf);
   }
-  return filesContent;
+  return contents;
 }
 
 async function getTargetFiles(
@@ -106,7 +107,7 @@ async function getTargetFiles(
   for (const f of positionals) {
     const normed = normalizePath(f);
     if (Deno.statSync(normed).isDirectory) {
-      const files = await $`git ls-files ${normed}`.noThrow().lines();
+      const files = await getGitListFiles(normed);
       for (const f of files) {
         addIfMatch(normalizePath(f));
       }
@@ -195,6 +196,8 @@ const template = (
       return `\`\`\`${lang}:${filepath}\n${value.trim()}\n\`\`\``;
     })
     .join("\n\n");
+
+  console.log("filesCode", filesCode);
 
   return `${input}
 
@@ -326,7 +329,7 @@ if (import.meta.main) {
     console.error("No prompt");
     Deno.exit(1);
   }
-  const contents = await getFiles(targetFiles);
+  const contents = await getFileContents(targetFiles);
   const model =
     parsed.values.model ?? parsed.values.pro
       ? "gemini-1.5-flash-latest"
